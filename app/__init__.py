@@ -5,6 +5,7 @@ from app.routes.admin_routes import admin_bp
 from app.routes.auth_routes import auth_bp
 from app.routes.annotator_routes import annotator_bp
 from app.routes.reviewer_routes import reviewer_bp
+from app.routes.interface_routes import interface_bp
 from flask_mail import Mail
 
 
@@ -23,5 +24,6 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
     app.register_blueprint(annotator_bp, url_prefix="/api/annotator")
     app.register_blueprint(reviewer_bp, url_prefix="/api/reviewer")
+    app.register_blueprint(interface_bp, url_prefix="/api")
 
     return app

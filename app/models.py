@@ -256,3 +256,126 @@ class Concept(db.Model):
     sanskrit_label = db.Column(db.String(200))
     english_label = db.Column(db.String(200))
     mrsc = db.Column(db.String(200))
+
+
+class Interface(db.Model):
+    __tablename__ = "interface"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), nullable=False, unique=True)
+    slug = db.Column(db.String(180), nullable=False, unique=True)
+    description = db.Column(db.Text)
+    version = db.Column(db.String(50), default="1.0.0")
+    status = db.Column(db.String(40), default="active")
+    category = db.Column(db.String(100))
+    visibility = db.Column(db.String(40), default="internal")
+    documentation_url = db.Column(db.String(255))
+    repo_url = db.Column(db.String(255))
+    contact_email = db.Column(db.String(150))
+    owner_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    tags = db.Column(db.JSON, default=list)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(
+        db.DateTime,
+        default=db.func.current_timestamp(),
+        onupdate=db.func.current_timestamp(),
+    )
+
+    endpoints = db.relationship(
+        "InterfaceEndpoint",
+        back_populates="interface",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
+    changelog = db.relationship(
+        "InterfaceChangeLog",
+        back_populates="interface",
+        lazy=True,
+        cascade="all, delete-orphan",
+        order_by="InterfaceChangeLog.created_at.desc()",
+    )
+
+
+class InterfaceEndpoint(db.Model):
+    __tablename__ = "interface_endpoint"
+
+    id = db.Column(db.Integer, primary_key=True)
+    interface_id = db.Column(db.Integer, db.ForeignKey("interface.id"), nullable=False)
+    method = db.Column(db.String(10), nullable=False)
+    path = db.Column(db.String(255), nullable=False)
+    summary = db.Column(db.String(255))
+    description = db.Column(db.Text)
+    auth_required = db.Column(db.Boolean, default=True)
+    rate_limit_per_minute = db.Column(db.Integer)
+    deprecated = db.Column(db.Boolean, default=False)
+    version_added = db.Column(db.String(50))
+    version_removed = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(
+        db.DateTime,
+        default=db.func.current_timestamp(),
+        onupdate=db.func.current_timestamp(),
+    )
+
+    interface = db.relationship("Interface", back_populates="endpoints")
+    parameters = db.relationship(
+        "EndpointParameter",
+        back_populates="endpoint",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
+    responses = db.relationship(
+        "EndpointResponse",
+        back_populates="endpoint",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
+
+
+class EndpointParameter(db.Model):
+    __tablename__ = "endpoint_parameter"
+
+    id = db.Column(db.Integer, primary_key=True)
+    endpoint_id = db.Column(
+        db.Integer, db.ForeignKey("interface_endpoint.id"), nullable=False
+    )
+    name = db.Column(db.String(120), nullable=False)
+    location = db.Column(db.String(20), nullable=False)  # path, query, header, body
+    type = db.Column(db.String(50), nullable=False)
+    required = db.Column(db.Boolean, default=False)
+    default_value = db.Column(db.Text)
+    description = db.Column(db.Text)
+    example = db.Column(db.Text)
+
+    endpoint = db.relationship("InterfaceEndpoint", back_populates="parameters")
+
+
+class EndpointResponse(db.Model):
+    __tablename__ = "endpoint_response"
+
+    id = db.Column(db.Integer, primary_key=True)
+    endpoint_id = db.Column(
+        db.Integer, db.ForeignKey("interface_endpoint.id"), nullable=False
+    )
+    http_status = db.Column(db.Integer, nullable=False)
+    content_type = db.Column(db.String(100), default="application/json")
+    schema = db.Column(db.JSON)
+    example = db.Column(db.Text)
+
+    endpoint = db.relationship("InterfaceEndpoint", back_populates="responses")
+
+
+class InterfaceChangeLog(db.Model):
+    __tablename__ = "interface_change_log"
+
+    id = db.Column(db.Integer, primary_key=True)
+    interface_id = db.Column(db.Integer, db.ForeignKey("interface.id"), nullable=False)
+    version = db.Column(db.String(50), nullable=False)
+    change_type = db.Column(
+        db.String(30),
+        nullable=False,
+    )  # added, changed, deprecated, removed, fixed, security
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    interface = db.relationship("Interface", back_populates="changelog")
