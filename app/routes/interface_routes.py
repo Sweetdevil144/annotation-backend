@@ -6,6 +6,9 @@ from app.models import (
     EndpointParameter,
     EndpointResponse,
     InterfaceChangeLog,
+    InterfaceFeature,
+    InterfaceWorkflow,
+    InterfaceHotkey,
 )
 
 
@@ -26,6 +29,11 @@ def serialize_basic(i: Interface):
         "repoUrl": i.repo_url,
         "contactEmail": i.contact_email,
         "tags": i.tags or [],
+        "supportedTasks": i.supported_tasks or [],
+        "mtEngines": i.mt_engines or [],
+        "languages": i.languages_supported or [],
+        "uiRoutes": i.ui_routes or [],
+        "resources": i.resources or {},
         "createdAt": i.created_at.isoformat() if i.created_at else None,
         "updatedAt": i.updated_at.isoformat() if i.updated_at else None,
         "endpointCount": len(i.endpoints),
@@ -75,6 +83,34 @@ def serialize_full(i: Interface):
     data.update(
         {
             "endpoints": [serialize_endpoint(e) for e in i.endpoints],
+            "features": [
+                {
+                    "id": f.id,
+                    "name": f.name,
+                    "category": f.category,
+                    "description": f.description,
+                    "enabled": f.enabled,
+                }
+                for f in i.features
+            ],
+            "workflows": [
+                {
+                    "id": w.id,
+                    "name": w.name,
+                    "description": w.description,
+                    "steps": w.steps or [],
+                }
+                for w in i.workflows
+            ],
+            "hotkeys": [
+                {
+                    "id": h.id,
+                    "action": h.action,
+                    "combo": h.combo,
+                    "context": h.context,
+                }
+                for h in i.hotkeys
+            ],
             "changelog": [
                 {
                     "id": c.id,

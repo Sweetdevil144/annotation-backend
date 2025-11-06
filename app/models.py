@@ -274,6 +274,11 @@ class Interface(db.Model):
     contact_email = db.Column(db.String(150))
     owner_id = db.Column(db.Integer, db.ForeignKey("user.id"))
     tags = db.Column(db.JSON, default=list)
+    supported_tasks = db.Column(db.JSON, default=list)
+    mt_engines = db.Column(db.JSON, default=list)
+    languages_supported = db.Column(db.JSON, default=list)
+    ui_routes = db.Column(db.JSON, default=list)
+    resources = db.Column(db.JSON)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(
         db.DateTime,
@@ -293,6 +298,24 @@ class Interface(db.Model):
         lazy=True,
         cascade="all, delete-orphan",
         order_by="InterfaceChangeLog.created_at.desc()",
+    )
+    features = db.relationship(
+        "InterfaceFeature",
+        back_populates="interface",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
+    workflows = db.relationship(
+        "InterfaceWorkflow",
+        back_populates="interface",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
+    hotkeys = db.relationship(
+        "InterfaceHotkey",
+        back_populates="interface",
+        lazy=True,
+        cascade="all, delete-orphan",
     )
 
 
@@ -379,3 +402,40 @@ class InterfaceChangeLog(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
     interface = db.relationship("Interface", back_populates="changelog")
+
+
+class InterfaceFeature(db.Model):
+    __tablename__ = "interface_feature"
+
+    id = db.Column(db.Integer, primary_key=True)
+    interface_id = db.Column(db.Integer, db.ForeignKey("interface.id"), nullable=False)
+    name = db.Column(db.String(150), nullable=False)
+    category = db.Column(db.String(100))  # evaluation, editing, feedback, alignment, tagging
+    description = db.Column(db.Text)
+    enabled = db.Column(db.Boolean, default=True)
+
+    interface = db.relationship("Interface", back_populates="features")
+
+
+class InterfaceWorkflow(db.Model):
+    __tablename__ = "interface_workflow"
+
+    id = db.Column(db.Integer, primary_key=True)
+    interface_id = db.Column(db.Integer, db.ForeignKey("interface.id"), nullable=False)
+    name = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text)
+    steps = db.Column(db.JSON, default=list)  # ["Open task","Review MT","Tag errors",...]
+
+    interface = db.relationship("Interface", back_populates="workflows")
+
+
+class InterfaceHotkey(db.Model):
+    __tablename__ = "interface_hotkey"
+
+    id = db.Column(db.Integer, primary_key=True)
+    interface_id = db.Column(db.Integer, db.ForeignKey("interface.id"), nullable=False)
+    action = db.Column(db.String(150), nullable=False)  # e.g., "Accept translation"
+    combo = db.Column(db.String(80), nullable=False)  # e.g., "Ctrl+Enter"
+    context = db.Column(db.String(120))  # e.g., "editor","alignment"
+
+    interface = db.relationship("Interface", back_populates="hotkeys")
